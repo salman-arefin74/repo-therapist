@@ -22,9 +22,34 @@ Behind the scenes, Repo Therapist:
 | Tool | Description |
 |------|-------------|
 | `analyze_repo(path)` | Analyze a repository - run this first |
+| `get_snapshot(section?)` | Get the static snapshot (ground truth) of the repo |
 | `ask_repo(question)` | Ask any question about the analyzed repo |
 | `repo_summary()` | Get a high-level overview |
 | `risk_report()` | Generate a risk assessment report |
+
+### Ground Truth: The Snapshot
+
+When you run `analyze_repo`, Repo Therapist creates a **static snapshot** - the authoritative source of truth about your repository. This snapshot includes:
+
+```json
+{
+  "files": [...],           // Every file with path, language, line count
+  "languages": {...},       // Language breakdown with percentages
+  "entryPoints": [...],     // Detected entry points with confidence levels
+  "configs": {...},         // Parsed package.json, tsconfig, Dockerfile, CI configs
+  "directories": [...]      // Directory structure with inferred purposes
+}
+```
+
+**Why this matters:** LLMs must cite this snapshot data, not guess. When you ask "What languages does this repo use?", the answer comes from the snapshot - not from the LLM making assumptions.
+
+Use `get_snapshot` to retrieve specific sections:
+- `get_snapshot(section: "files")` - All files with metadata
+- `get_snapshot(section: "languages")` - Language statistics
+- `get_snapshot(section: "entryPoints")` - Detected entry points
+- `get_snapshot(section: "configs")` - Parsed configuration files
+- `get_snapshot(section: "directories")` - Directory structure
+- `get_snapshot()` - Summary of everything
 
 ## Setup
 
@@ -180,11 +205,16 @@ npm run build
 ```
 repo-therapist/
 ├── src/
-│   ├── index.ts          # MCP server entry point
-│   ├── cache.ts          # In-memory repo cache
-│   ├── types.ts          # TypeScript interfaces
+│   ├── index.ts              # MCP server entry point
+│   ├── cache.ts              # In-memory repo cache
+│   ├── types.ts              # TypeScript interfaces
+│   ├── scanner/              # Static snapshot engine
+│   │   ├── index.ts          # Scanner exports
+│   │   ├── types.ts          # Snapshot type definitions
+│   │   └── scan-repo.ts      # Repository scanner
 │   └── tools/
 │       ├── analyze-repo.ts   # Repository analyzer
+│       ├── get-snapshot.ts   # Snapshot retrieval (ground truth)
 │       ├── ask-repo.ts       # Question answering
 │       ├── repo-summary.ts   # Summary generator
 │       └── risk-report.ts    # Risk assessment

@@ -10,6 +10,7 @@ import { analyzeRepo } from "./tools/analyze-repo.js";
 import { askRepo } from "./tools/ask-repo.js";
 import { repoSummary } from "./tools/repo-summary.js";
 import { riskReport } from "./tools/risk-report.js";
+import { getSnapshot } from "./tools/get-snapshot.js";
 import { RepoCache } from "./cache.js";
 
 // Global cache for analyzed repos
@@ -99,6 +100,28 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
           required: [],
         },
       },
+      {
+        name: "get_snapshot",
+        description:
+          "Get the static snapshot (ground truth) of the repository. This is the authoritative source - LLMs must cite this data, not guess. Use section parameter to get specific data.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            section: {
+              type: "string",
+              enum: ["files", "languages", "entryPoints", "configs", "directories", "all"],
+              description:
+                "Which section of the snapshot to retrieve. 'all' returns a summary view.",
+            },
+            path: {
+              type: "string",
+              description:
+                "Optional: path to repo if different from last analyzed",
+            },
+          },
+          required: [],
+        },
+      },
     ],
   };
 });
@@ -136,6 +159,14 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       case "risk_report": {
         const { path } = (args as { path?: string }) || {};
         const result = await riskReport(path);
+        return {
+          content: [{ type: "text", text: result }],
+        };
+      }
+
+      case "get_snapshot": {
+        const { section, path } = (args as { section?: "files" | "languages" | "entryPoints" | "configs" | "directories" | "all"; path?: string }) || {};
+        const result = await getSnapshot(path, section);
         return {
           content: [{ type: "text", text: result }],
         };

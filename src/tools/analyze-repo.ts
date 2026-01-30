@@ -12,13 +12,14 @@ import {
   RiskFactor,
 } from "../types.js";
 import { repoCache } from "../index.js";
+import { scanRepo } from "../scanner/index.js";
 
 /**
  * Analyze a repository's structure, dependencies, and git history
  */
 export async function analyzeRepo(
   repoPath: string
-): Promise<{ success: boolean; message: string; summary?: string }> {
+): Promise<{ success: boolean; message: string; summary?: string; snapshot?: object }> {
   // Validate path
   if (!fs.existsSync(repoPath)) {
     throw new Error(`Repository path does not exist: ${repoPath}`);
@@ -32,7 +33,12 @@ export async function analyzeRepo(
   const repoName = path.basename(repoPath);
   console.error(`Analyzing repository: ${repoName} at ${repoPath}`);
 
-  // Gather all analysis data
+  // Step 1: Create static snapshot (ground truth)
+  console.error(`[Step 1] Creating static snapshot...`);
+  const snapshot = await scanRepo(repoPath);
+
+  // Step 2: Gather additional analysis data
+  console.error(`[Step 2] Analyzing structure and git history...`);
   const structure = await analyzeStructure(repoPath);
   const codeMetrics = await analyzeCode(repoPath);
   const gitMetrics = await analyzeGit(repoPath);
@@ -52,13 +58,28 @@ export async function analyzeRepo(
     techStack,
   };
 
-  // Cache the analysis
-  repoCache.set(repoPath, analysis);
+  // Cache both analysis and snapshot
+  repoCache.set(repoPath, analysis, snapshot);
 
   return {
     success: true,
     message: `Successfully analyzed ${repoName}`,
     summary: generateQuickSummary(analysis),
+    snapshot: {
+      snapshotVersion: snapshot.snapshotVersion,
+      totalFiles: snapshot.totalFiles,
+      totalLines: snapshot.totalLines,
+      primaryLanguage: snapshot.primaryLanguage,
+      languages: snapshot.languages.slice(0, 5),
+      entryPoints: snapshot.entryPoints,
+      directories: snapshot.directories.slice(0, 10),
+      configs: {
+        hasPackageJson: !!snapshot.configs.packageJson,
+        hasTsConfig: !!snapshot.configs.tsConfig,
+        hasDockerfile: !!snapshot.configs.dockerfile,
+        ciPlatforms: snapshot.configs.ci.map(c => c.platform),
+      },
+    },
   };
 }
 
