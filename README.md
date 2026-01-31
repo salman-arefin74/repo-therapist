@@ -4,6 +4,8 @@
 
 Repo Therapist is an MCP (Model Context Protocol) server that turns any repository into queryable, explainable knowledge. Ask questions about your codebase through Cursor and get structured, insightful answers.
 
+This project is completely vibe-coded using cursor.
+
 ## What it does
 
 You ask Cursor things like:
