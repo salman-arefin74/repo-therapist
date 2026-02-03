@@ -25,6 +25,8 @@ Behind the scenes, Repo Therapist:
 |------|-------------|
 | `analyze_repo(path)` | Analyze a repository - run this first |
 | `get_snapshot(section?)` | Get the static snapshot (ground truth) of the repo |
+| `get_history(section?)` | Get git history analysis (the time dimension) |
+| `why_is_this_weird(file_path)` | Explain why a specific file is the way it is |
 | `ask_repo(question)` | Ask any question about the analyzed repo |
 | `repo_summary()` | Get a high-level overview |
 | `risk_report()` | Generate a risk assessment report |
@@ -52,6 +54,53 @@ Use `get_snapshot` to retrieve specific sections:
 - `get_snapshot(section: "configs")` - Parsed configuration files
 - `get_snapshot(section: "directories")` - Directory structure
 - `get_snapshot()` - Summary of everything
+
+### Git Historian: The Time Dimension
+
+The Git Historian analyzes commit history to explain **WHY** code is the way it is. This is where it stops being cute.
+
+```json
+{
+  "fileChurn": { "auth.ts": { "totalCommits": 47, "churnScore": 85 } },
+  "authors": { "auth.ts": ["alice", "bob", "charlie"] },
+  "fragileFiles": [{ "path": "auth.ts", "reasons": ["high-churn", "many-authors"] }],
+  "hotPaths": [...],
+  "stableCore": [...]
+}
+```
+
+**This lets you answer:**
+- "Why is this weird?" → "Because it's been rewritten 12 times in 6 months."
+- "Who owns this file?" → "Disputed - 4 people have modified it, none with >30%."
+- "What should I be careful with?" → "These 5 files are fragile and bug-prone."
+
+Use `get_history` to retrieve specific aspects:
+- `get_history(section: "churn")` - File change frequency and volatility
+- `get_history(section: "authors")` - Contributor statistics
+- `get_history(section: "fragile")` - Files likely to cause problems
+- `get_history(section: "hotPaths")` - Hot paths vs stable core
+- `get_history(section: "timeline")` - Key events and commit patterns
+- `get_history(section: "ownership")` - Who owns what
+- `get_history()` - Summary of everything
+
+Use `why_is_this_weird` for specific file analysis:
+```
+Use why_is_this_weird on "src/auth/login.ts"
+```
+
+Returns a detailed explanation with citations:
+```
+# Why is "src/auth/login.ts" the way it is?
+
+## Change History
+- Total commits: 47
+- Authors: 5 (alice, bob, charlie, dave, eve)
+- Churn score: 85 ⚠️ HIGH
+
+## 🔍 Why It's Unusual
+**Heavily modified:** This file has been changed 47 times...
+**Many hands:** 5 different people have modified this file...
+```
 
 ## Setup
 
@@ -210,13 +259,18 @@ repo-therapist/
 │   ├── index.ts              # MCP server entry point
 │   ├── cache.ts              # In-memory repo cache
 │   ├── types.ts              # TypeScript interfaces
-│   ├── scanner/              # Static snapshot engine
+│   ├── scanner/              # Static snapshot engine (Step 2)
 │   │   ├── index.ts          # Scanner exports
 │   │   ├── types.ts          # Snapshot type definitions
 │   │   └── scan-repo.ts      # Repository scanner
+│   ├── historian/            # Git history analyzer (Step 3)
+│   │   ├── index.ts          # Historian exports
+│   │   ├── types.ts          # History type definitions
+│   │   └── analyze-history.ts # Git history analysis
 │   └── tools/
-│       ├── analyze-repo.ts   # Repository analyzer
+│       ├── analyze-repo.ts   # Repository analyzer (orchestrates all)
 │       ├── get-snapshot.ts   # Snapshot retrieval (ground truth)
+│       ├── get-history.ts    # History retrieval (time dimension)
 │       ├── ask-repo.ts       # Question answering
 │       ├── repo-summary.ts   # Summary generator
 │       └── risk-report.ts    # Risk assessment

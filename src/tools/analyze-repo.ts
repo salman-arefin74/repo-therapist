@@ -13,13 +13,14 @@ import {
 } from "../types.js";
 import { repoCache } from "../index.js";
 import { scanRepo } from "../scanner/index.js";
+import { analyzeGitHistory } from "../historian/index.js";
 
 /**
  * Analyze a repository's structure, dependencies, and git history
  */
 export async function analyzeRepo(
   repoPath: string
-): Promise<{ success: boolean; message: string; summary?: string; snapshot?: object }> {
+): Promise<{ success: boolean; message: string; summary?: string; snapshot?: object; history?: object | null }> {
   // Validate path
   if (!fs.existsSync(repoPath)) {
     throw new Error(`Repository path does not exist: ${repoPath}`);
@@ -37,8 +38,12 @@ export async function analyzeRepo(
   console.error(`[Step 1] Creating static snapshot...`);
   const snapshot = await scanRepo(repoPath);
 
-  // Step 2: Gather additional analysis data
-  console.error(`[Step 2] Analyzing structure and git history...`);
+  // Step 2: Analyze git history (time dimension)
+  console.error(`[Step 2] Analyzing git history...`);
+  const history = await analyzeGitHistory(repoPath);
+
+  // Step 3: Gather additional analysis data
+  console.error(`[Step 3] Analyzing structure...`);
   const structure = await analyzeStructure(repoPath);
   const codeMetrics = await analyzeCode(repoPath);
   const gitMetrics = await analyzeGit(repoPath);
@@ -58,8 +63,8 @@ export async function analyzeRepo(
     techStack,
   };
 
-  // Cache both analysis and snapshot
-  repoCache.set(repoPath, analysis, snapshot);
+  // Cache analysis, snapshot, and history
+  repoCache.set(repoPath, analysis, snapshot, history);
 
   return {
     success: true,
@@ -80,6 +85,18 @@ export async function analyzeRepo(
         ciPlatforms: snapshot.configs.ci.map(c => c.platform),
       },
     },
+    history: history ? {
+      totalCommits: history.totalCommits,
+      totalAuthors: history.totalAuthors,
+      commitPattern: history.commitPattern,
+      highChurnFiles: history.highChurnFiles.slice(0, 5),
+      fragileFiles: history.fragileFiles.slice(0, 5).map(f => ({
+        path: f.path,
+        reasons: f.reasons,
+        fragileScore: f.fragileScore,
+      })),
+      recentlyFragile: history.recentlyFragile,
+    } : null,
   };
 }
 

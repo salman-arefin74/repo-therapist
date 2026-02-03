@@ -11,6 +11,7 @@ import { askRepo } from "./tools/ask-repo.js";
 import { repoSummary } from "./tools/repo-summary.js";
 import { riskReport } from "./tools/risk-report.js";
 import { getSnapshot } from "./tools/get-snapshot.js";
+import { getHistory, whyIsThisWeird } from "./tools/get-history.js";
 import { RepoCache } from "./cache.js";
 
 // Global cache for analyzed repos
@@ -122,6 +123,49 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
           required: [],
         },
       },
+      {
+        name: "get_history",
+        description:
+          "Get git history analysis - the time dimension. Reveals WHY code is the way it is: file churn, ownership, fragile files, hot paths vs stable core.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            section: {
+              type: "string",
+              enum: ["churn", "authors", "fragile", "hotPaths", "timeline", "ownership", "all"],
+              description:
+                "Which aspect of history to retrieve: 'churn' (file change frequency), 'authors' (contributor stats), 'fragile' (problem files), 'hotPaths' (volatile vs stable), 'timeline' (events), 'ownership' (who owns what), 'all' (summary).",
+            },
+            path: {
+              type: "string",
+              description:
+                "Optional: path to repo if different from last analyzed",
+            },
+          },
+          required: [],
+        },
+      },
+      {
+        name: "why_is_this_weird",
+        description:
+          "Explain why a specific file is the way it is, based on git history. Answers questions like 'Why is this file so complex?' with data: 'Because it's been rewritten 12 times by 5 different people.'",
+        inputSchema: {
+          type: "object",
+          properties: {
+            file_path: {
+              type: "string",
+              description:
+                "The relative path to the file to analyze (e.g., 'src/auth/login.ts')",
+            },
+            path: {
+              type: "string",
+              description:
+                "Optional: path to repo if different from last analyzed",
+            },
+          },
+          required: ["file_path"],
+        },
+      },
     ],
   };
 });
@@ -167,6 +211,22 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       case "get_snapshot": {
         const { section, path } = (args as { section?: "files" | "languages" | "entryPoints" | "configs" | "directories" | "all"; path?: string }) || {};
         const result = await getSnapshot(path, section);
+        return {
+          content: [{ type: "text", text: result }],
+        };
+      }
+
+      case "get_history": {
+        const { section, path } = (args as { section?: "churn" | "authors" | "fragile" | "hotPaths" | "timeline" | "ownership" | "all"; path?: string }) || {};
+        const result = await getHistory(path, section);
+        return {
+          content: [{ type: "text", text: result }],
+        };
+      }
+
+      case "why_is_this_weird": {
+        const { file_path, path } = args as { file_path: string; path?: string };
+        const result = await whyIsThisWeird(file_path, path);
         return {
           content: [{ type: "text", text: result }],
         };
