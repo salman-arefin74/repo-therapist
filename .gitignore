@@ -1,3 +1,9 @@
 dist/
 node_modules/
 package-lock.json
+
+# Test fixtures (generated during tests)
+tests/fixtures/repos/
+
+# Coverage reports
+coverage/

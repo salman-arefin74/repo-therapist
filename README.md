@@ -4,8 +4,6 @@
 
 Repo Therapist is an MCP (Model Context Protocol) server that turns any repository into queryable, explainable knowledge. Ask questions about your codebase through Cursor and get structured, insightful answers.
 
-This project is completely vibe-coded using cursor.
-
 ## What it does
 
 You ask Cursor things like:
@@ -251,6 +249,36 @@ npm run dev
 npm run build
 ```
 
+### Run tests
+
+```bash
+npm test              # Run all tests
+npm run test:watch    # Run tests in watch mode
+npm run test:coverage # Run tests with coverage report
+```
+
+### Testing Guidelines
+
+> **Note:** Always add unit tests when implementing new features.
+
+Tests are located in `tests/` and use [Vitest](https://vitest.dev/). The test structure mirrors the source:
+
+```
+tests/
+├── fixtures/           # Test utilities and mock repos
+│   └── setup.ts        # Helper functions for creating test repos
+├── scanner/            # Scanner module tests
+├── historian/          # Historian module tests
+├── tools/              # Tool tests
+└── cache.test.ts       # Cache tests
+```
+
+When adding a new feature:
+1. Create tests in the appropriate `tests/` subdirectory
+2. Use `createTestRepo()` from `fixtures/setup.ts` for git-related tests
+3. Clean up test repos with `cleanupTestRepo()` in `afterAll`
+4. Run `npm test` to verify all tests pass before committing
+
 ### Project structure
 
 ```
@@ -274,8 +302,14 @@ repo-therapist/
 │       ├── ask-repo.ts       # Question answering
 │       ├── repo-summary.ts   # Summary generator
 │       └── risk-report.ts    # Risk assessment
+├── tests/                    # Unit tests
+│   ├── fixtures/             # Test utilities
+│   ├── scanner/              # Scanner tests
+│   ├── historian/            # Historian tests
+│   └── tools/                # Tool tests
 ├── package.json
 ├── tsconfig.json
+├── vitest.config.ts          # Test configuration
 └── README.md
 ```
 
