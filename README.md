@@ -2,6 +2,8 @@
 
 > Your codebase explains itself under pressure
 
+**This MCP server is built entirely using Cursor**
+
 Repo Therapist is an MCP (Model Context Protocol) server that turns any repository into queryable, explainable knowledge. Ask questions about your codebase through Cursor and get structured, insightful answers.
 
 ## What it does
